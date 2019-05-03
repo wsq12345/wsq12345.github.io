@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Head tag -->
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content>
+    <meta name="keyword" content>
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>
+        
+          异步Promise以及Async/Await - Yeoman的博客 | Yeoman&#39;s Blog
+        
+    </title>
+
+    <link rel="canonical" href="https://yeomanli.github.io/2019/05/03/异步Promise以及AsyncAwait/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/hux-blog.min.css">
+
+    <!-- Pygments Highlight CSS -->
+    <link rel="stylesheet" href="/css/highlight.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="https://cdn.staticfile.org/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Yeoman&#39;s Blog</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+
+                    
+
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/about/">About</a>
+                        </li>
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/archives/">Archives</a>
+                        </li>
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/tags/">Tags</a>
+                        </li>
+                        
+                    
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Main Content -->
+    
+<!-- Image to hack wechat -->
+<!-- <img src="https://yeomanli.github.io/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="{{ site.baseurl }}/{% if page.header-img %}{{ page.header-img }}{% else %}{{ site.header-img }}{% endif %}" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        background-image: url('promise.png')
+    }
+</style>
+<header class="intro-header">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                          <a class="tag" href="/tags/#JavaScript" title="JavaScript">JavaScript</a>
+                        
+                          <a class="tag" href="/tags/#ES6" title="ES6">ES6</a>
+                        
+                    </div>
+                    <h1>异步Promise以及Async/Await</h1>
+                    <h2 class="subheading">一篇笔记</h2>
+                    <span class="meta">
+                        Posted by Yeoman Li on
+                        2019-05-03
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+                <p>本文是阅读<a href="http://www.tangyida.top/detail/152" target="_blank" rel="noopener">这篇文章</a>所写的笔记</p>
+<h2 id="Promise-链式写法"><a href="#Promise-链式写法" class="headerlink" title="Promise 链式写法"></a><code>Promise</code> 链式写法</h2><blockquote>
+<p><strong>Promise 的 <code>then</code> 链式写法本质上是一直往下传递一个新的Promise</strong>，也就是说<code>then</code>在下一步接收的是上一步返回的Promise。</p>
+</blockquote>
+<p>看以下代码：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> setDelay = <span class="function"><span class="params">millisecond</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="string">'number'</span> != <span class="keyword">typeof</span> millisecond) reject(<span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">'参数必须是number类型'</span>))</span><br><span class="line">    setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> &#123;</span><br><span class="line">      resolve(<span class="string">`我延迟了<span class="subst">$&#123; millisecond &#125;</span>毫秒后输出的`</span>)</span><br><span class="line">    &#125;, millisecond);</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> setSecond = <span class="function"><span class="params">second</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (<span class="string">'number'</span> != <span class="keyword">typeof</span> second || <span class="number">10</span> &lt; second) reject(<span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">'参数必须是number类型，并且必须小于10'</span>))</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">    setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> &#123;</span><br><span class="line">      resolve(<span class="string">`我延迟了<span class="subst">$&#123; second &#125;</span>秒后输出的`</span>)</span><br><span class="line">    &#125;, second * <span class="number">1000</span>);</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setDelay(<span class="number">3000</span>)</span><br><span class="line">    .then(<span class="function"><span class="params">res</span> =&gt;</span> &#123;</span><br><span class="line">      <span class="built_in">console</span>.log(res)</span><br><span class="line">      <span class="built_in">console</span>.log(<span class="string">'我进行到第一步'</span>)</span><br><span class="line">      <span class="keyword">return</span> setSecond(<span class="number">2</span>)</span><br><span class="line">    &#125;)</span><br><span class="line">    .then(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line">      <span class="built_in">console</span>.log(<span class="string">'现在是第二步'</span>)</span><br><span class="line">      <span class="built_in">console</span>.log(result)</span><br><span class="line">    &#125;) .catch(<span class="function"><span class="params">err</span> =&gt;</span> <span class="built_in">console</span>.log(err))</span><br><span class="line"></span><br><span class="line"><span class="comment">// 我延迟了3000毫秒后输出的</span></span><br><span class="line"><span class="comment">// 我进行到第一步</span></span><br><span class="line"><span class="comment">// 现在是第二步</span></span><br><span class="line"><span class="comment">// 我延迟了2秒后输出的</span></span><br></pre></td></tr></table></figure>
+<h2 id="错误处理"><a href="#错误处理" class="headerlink" title="错误处理"></a>错误处理</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">setDelay(<span class="number">2000</span>)</span><br><span class="line">  .then(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(result)</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'我是进行到第一步的'</span>)</span><br><span class="line">    <span class="keyword">return</span> setSecond(<span class="number">20</span>)</span><br><span class="line">  &#125;)</span><br><span class="line">  .then(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'我是进行到第二步的'</span>)</span><br><span class="line">    <span class="built_in">console</span>.log(result)</span><br><span class="line">  &#125;, err =&gt; <span class="built_in">console</span>.log(err))</span><br><span class="line">  .then(<span class="function"><span class="params">result</span> =&gt;</span> <span class="built_in">console</span>.log(<span class="string">'我还是继续执行的'</span>))</span><br><span class="line">  .catch(<span class="function"><span class="params">err</span> =&gt;</span> <span class="built_in">console</span>.log(err))</span><br><span class="line"></span><br><span class="line"><span class="comment">// 我延迟了2000毫秒后输出的</span></span><br><span class="line"><span class="comment">// 我是进行到第一步的</span></span><br><span class="line"><span class="comment">// 我出错啦，进到这里捕获错误，但是不经过catch了</span></span><br><span class="line"><span class="comment">// 我还是继续执行的</span></span><br></pre></td></tr></table></figure>
+<p>可以看到进到 <code>then</code> 的第二个参数 <code>reject</code> 中去了，而且不再经过 <code>catch</code> 了。</p>
+<p>那么我们把 <code>catch</code> 挪上去，写到 <code>then</code> 错误之前：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">setDelay(<span class="number">2000</span>)</span><br><span class="line">  .then(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(result)</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'我是进行到第一步的'</span>)</span><br><span class="line">    <span class="keyword">return</span> setSecond(<span class="number">20</span>)</span><br><span class="line">  &#125;)</span><br><span class="line">  .catch(<span class="function"><span class="params">err</span> =&gt;</span> <span class="built_in">console</span>.log(err))</span><br><span class="line">  .then(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'我是进行到第二步的'</span>)</span><br><span class="line">    <span class="built_in">console</span>.log(result)</span><br><span class="line">  &#125;, err =&gt; <span class="built_in">console</span>.log(<span class="string">'我出错啦，进到这里捕获错误，但是不经过catch了'</span>))</span><br><span class="line">  .then(<span class="function"><span class="params">result</span> =&gt;</span> <span class="built_in">console</span>.log(<span class="string">'我还是继续执行的'</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment">// 我延迟了2000毫秒后输出的</span></span><br><span class="line"><span class="comment">// 我是进行到第一步的</span></span><br><span class="line"><span class="comment">// Error: 参数必须是number类型，并且必须小于10</span></span><br><span class="line"><span class="comment">// 我是进行到第二步的</span></span><br><span class="line"><span class="comment">// undefined</span></span><br><span class="line"><span class="comment">// 我还是继续执行的</span></span><br></pre></td></tr></table></figure>
+<p>可以看到先经过 <code>catch</code> 捕获，后面就没有错误了。</p>
+<h3 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h3><ol>
+<li><code>catch</code> 写法是针对于整个链式写法的错误而捕获的，而 <code>then</code> 第二个参数是针对于上一个返回的 <code>Promise</code> 的。</li>
+<li>两者的优先级别：写在前面的先捕获，<strong>后面就没有错误可以捕获了</strong>。</li>
+<li>两者都不是 <code>break</code> ，可以继续执行后续的操作而不受影响。</li>
+<li>链式中的 <code>catch</code> 并不是终点，<code>catch</code> 完如果有 <code>then</code> 还会继续往下走。</li>
+</ol>
+<h2 id="如何跳出或停止-Promise-链式"><a href="#如何跳出或停止-Promise-链式" class="headerlink" title="如何跳出或停止 Promise 链式"></a>如何跳出或停止 <code>Promise</code> 链式</h2><ol>
+<li><p>直接拒绝某一链</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">setDelay(<span class="number">2000</span>)</span><br><span class="line">  .then(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(result)</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'我是进行到第一步的'</span>)</span><br><span class="line">    <span class="keyword">return</span> setSecond(<span class="number">2</span>)</span><br><span class="line">  &#125;)</span><br><span class="line">  .then(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'我是进行到第二步的'</span>)</span><br><span class="line">    <span class="built_in">console</span>.log(result)</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'我在这一层主动跳出循环'</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Promise</span>.reject(&#123;</span><br><span class="line">      isNotErrorException: <span class="literal">true</span>,</span><br><span class="line">      msg: <span class="string">'跳出循环的信息'</span></span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;)</span><br><span class="line">  .then(<span class="function"><span class="params">res</span> =&gt;</span> <span class="built_in">console</span>.log(<span class="string">'我不执行'</span>))</span><br><span class="line">  .catch(<span class="function"><span class="params">mes</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(mes)</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'我跳出了'</span>)</span><br><span class="line">  &#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 我延迟了2000毫秒后输出的</span></span><br><span class="line"><span class="comment">// 我是进行到第一步的</span></span><br><span class="line"><span class="comment">// 我是进行到第二步的</span></span><br><span class="line"><span class="comment">// 我延迟了2秒后输出的</span></span><br><span class="line"><span class="comment">// 我在这一层主动跳出循环</span></span><br><span class="line"><span class="comment">// &#123; isNotErrorException: true, msg: '跳出循环的信息' &#125;</span></span><br><span class="line"><span class="comment">// 我跳出了</span></span><br></pre></td></tr></table></figure>
+<p>但是这样存在一个问题，就是<strong>当我们的 <code>catch</code> 放在中间，不是末尾，上述方法中止后 <code>catch</code> 后面的代码会继续执行，而我们又不想执行 <code>catch</code> 后面的代码，也就是链式的绝对中止</strong>。</p>
+<p>如下：</p>
+<p>在 <code>.catch</code> 后加上这一段：<code>.then(res =&gt; console.log(&#39;我不想执行，但是却执行了&#39;))</code> ，可以看到最后依然会执行这一句，那么该怎么办呢？</p>
+<p>这时候就要使用第二种方法了。</p>
+</li>
+</ol>
+<ol start="2">
+<li><p>让当前层级一直 <code>pending</code> 下去</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">setDelay(<span class="number">2000</span>)</span><br><span class="line">.then(<span class="function">(<span class="params">result</span>)=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result)</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'我进行到第一步的'</span>);</span><br><span class="line">  <span class="keyword">return</span> setDelaySecond(<span class="number">1</span>)</span><br><span class="line">&#125;)</span><br><span class="line">.then(<span class="function">(<span class="params">result</span>)=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result);</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'我主动跳出循环了'</span>);</span><br><span class="line">  <span class="comment">// return Promise.reject('跳出循环的信息')</span></span><br><span class="line">  <span class="comment">// 重点在这</span></span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function"><span class="params">()</span>=&gt;</span>&#123;<span class="built_in">console</span>.log(<span class="string">'后续的不会执行'</span>)&#125;) <span class="comment">// 这里返回的一个新的Promise，没有resolve和reject，那么会一直处于pending状态，因为没返回啊，那么这种状态就一直保持着，中断了这个Promise</span></span><br><span class="line">&#125;)</span><br><span class="line">.then(<span class="function">(<span class="params">result</span>)=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'我不执行'</span>);</span><br><span class="line">&#125;)</span><br><span class="line">.catch(<span class="function">(<span class="params">mes</span>)=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.dir(mes)</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'我跳出了'</span>);</span><br><span class="line">&#125;)</span><br><span class="line">.then(<span class="function">(<span class="params">res</span>)=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'我也不会执行'</span>)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>这样就解决了上述，错误跳出而导致无法完全中止 <code>Promise</code> 链的问题。</p>
+<p>但是<strong>这可能会导致潜在的内存泄露</strong>。</p>
+</li>
+</ol>
+<h2 id="Await、Async"><a href="#Await、Async" class="headerlink" title="Await、Async"></a>Await、Async</h2><h3 id="async-的本质"><a href="#async-的本质" class="headerlink" title="async 的本质"></a><code>async</code> 的本质</h3><blockquote>
+<p><code>async</code> 声明的函数的返回本质上是一个<code>Promise</code> 对象</p>
+</blockquote>
+<p>只要声明了这个函数是 <code>async</code> ，那么内部不管你怎么处理，它的返回值肯定是个 <code>Promise</code> 对象。</p>
+<p>来看下面的例子：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">(<span class="keyword">async</span> <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">'我是Promise'</span></span><br><span class="line">&#125;)()</span><br><span class="line"><span class="comment">//	返回的是Promise</span></span><br><span class="line"><span class="comment">//	Promise &#123;&lt;resolved&gt;: "我是Promise"&#125;</span></span><br></pre></td></tr></table></figure>
+<p>会自动解析成 <code>Promise.resolve(&#39;我是Promise&#39;);</code></p>
+<p>等同于：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(<span class="keyword">async</span> <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">Promise</span>.resolve(<span class="string">'我是Promise'</span>);</span><br><span class="line">&#125;)()</span><br></pre></td></tr></table></figure>
+<h3 id="await-的本质"><a href="#await-的本质" class="headerlink" title="await 的本质"></a><code>await</code> 的本质</h3><blockquote>
+<p><code>await</code> 等的是一个 <code>Promise</code> 的异步返回，如果等待的不是一个 <code>Promise</code> ，是起不到等待一会儿的作用的。</p>
+</blockquote>
+<p>例如：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> demo = <span class="keyword">async</span> () =&gt; &#123;</span><br><span class="line">  <span class="keyword">let</span> res = <span class="keyword">await</span> setTimeout(<span class="function"><span class="params">()</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'我延迟了一秒'</span>)</span><br><span class="line">  &#125;, <span class="number">1000</span>)</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'我由于上面的程序还没执行完，先不执行，等待一会儿'</span>)</span><br><span class="line">  <span class="keyword">return</span> res</span><br><span class="line">&#125;</span><br><span class="line">demo ().then(<span class="function"><span class="params">res</span> =&gt;</span> <span class="built_in">console</span>.log(<span class="string">'输出'</span>, res))</span><br><span class="line"></span><br><span class="line"><span class="comment">// 我由于上面的程序还没执行完，先不执行“等待一会”</span></span><br><span class="line"><span class="comment">// 输出 1</span></span><br><span class="line"><span class="comment">// 我延迟了一秒</span></span><br></pre></td></tr></table></figure>
+<p>可以看到，并没有 <code>await</code> ，验证了上面所提到的注意事项。</p>
+<h2 id="实战演练"><a href="#实战演练" class="headerlink" title="实战演练"></a>实战演练</h2><h3 id="场景1"><a href="#场景1" class="headerlink" title="场景1"></a>场景1</h3><p>常规使用 <code>async</code> 、<code>await</code> 时，我们通常将代码块使用 <code>try...catch</code> 来包裹，但是如果我们想拆分开来分别处理，<strong>不想因为一个的错误就整个process都crash掉了</strong>，那么难道我要写一堆 <code>try...catch</code> 么？</p>
+<h4 id="方法一"><a href="#方法一" class="headerlink" title="方法一"></a>方法一</h4><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">(<span class="keyword">async</span> ()=&gt;&#123;</span><br><span class="line">  <span class="keyword">const</span> result = <span class="keyword">await</span> setDelay(<span class="number">1000</span>).catch(<span class="function"><span class="params">err</span>=&gt;</span>&#123;</span><br><span class="line">      <span class="built_in">console</span>.log(err)</span><br><span class="line">  &#125;);</span><br><span class="line">  <span class="built_in">console</span>.log(result);</span><br><span class="line">  <span class="keyword">const</span> result1 = <span class="keyword">await</span> setDelaySecond(<span class="number">12</span>).catch(<span class="function"><span class="params">err</span>=&gt;</span>&#123;</span><br><span class="line">      <span class="built_in">console</span>.log(err)</span><br><span class="line">  &#125;)</span><br><span class="line">  <span class="built_in">console</span>.log(result1);</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="keyword">await</span> setDelay(<span class="number">1000</span>));</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'完成了'</span>);</span><br><span class="line">&#125;)()</span><br></pre></td></tr></table></figure>
+<p>可以看到，就算是有错误，也不会影响后续的操作。但是，这种方法的缺陷是非常不规整，<code>await</code> 后又跟着 <code>catch</code> 。</p>
+<p>可以改进一下，封装一个提取错误的函数：</p>
+<h4 id="方法二"><a href="#方法二" class="headerlink" title="方法二"></a>方法二</h4><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">to</span> (<span class="params">promise</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> promise.then(<span class="function"><span class="params">data</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> [<span class="literal">null</span>, data]</span><br><span class="line">  &#125;)</span><br><span class="line">  .catch(<span class="function"><span class="params">err</span> =&gt;</span> [err])</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">(<span class="keyword">async</span> ()=&gt;&#123;</span><br><span class="line">   <span class="comment">// es6的写法，返回一个数组(你可以改回es5的写法觉得不习惯的话)，第一个是错误信息，第二个是then的异步返回数据，这里要注意一下重复变量声明可能导致问题（这里举例是全局，如果用let，const，请换变量名）。</span></span><br><span class="line">  [err, result] = <span class="keyword">await</span> to(setDelay(<span class="number">1000</span>)) </span><br><span class="line">   <span class="comment">// 如果err存在就是有错，不想继续执行就抛出错误</span></span><br><span class="line">  <span class="keyword">if</span> (err) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">'出现错误，同时我不想执行了'</span>);</span><br><span class="line">  <span class="built_in">console</span>.log(result);</span><br><span class="line">  [err, result1] = <span class="keyword">await</span> to(setDelaySecond(<span class="number">12</span>))</span><br><span class="line">   <span class="comment">// 还想执行就不要抛出错误</span></span><br><span class="line">  <span class="keyword">if</span> (err) <span class="built_in">console</span>.log(<span class="string">'出现错误，同时我想继续执行'</span>, err);</span><br><span class="line">  <span class="built_in">console</span>.log(result1);</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="keyword">await</span> setDelay(<span class="number">1000</span>));</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'完成了'</span>);</span><br><span class="line">&#125;)()</span><br></pre></td></tr></table></figure>
+<h3 id="场景2"><a href="#场景2" class="headerlink" title="场景2"></a>场景2</h3><p>依次分别延迟1秒输出值，一共5秒。</p>
+<p>延迟函数如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> setDelay = <span class="function">(<span class="params">millisecond</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>)=&gt;</span>&#123;</span><br><span class="line">      <span class="keyword">if</span> (<span class="keyword">typeof</span> millisecond != <span class="string">'number'</span>) reject(<span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">'参数必须是number类型'</span>));</span><br><span class="line">      setTimeout(<span class="function"><span class="params">()</span>=&gt;</span> &#123;</span><br><span class="line">        resolve(<span class="string">`我延迟了<span class="subst">$&#123;millisecond&#125;</span>毫秒后输出的`</span>)</span><br><span class="line">      &#125;, millisecond)</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>错误的方法：</strong></p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">arr = [setDelay(<span class="number">1000</span>), setDelay(<span class="number">1000</span>), setDelay(<span class="number">1000</span>)]</span><br><span class="line">arr[<span class="number">0</span>]</span><br><span class="line">.then(<span class="function"><span class="params">result</span>=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result)</span><br><span class="line">  <span class="keyword">return</span> arr[<span class="number">1</span>]</span><br><span class="line">&#125;)</span><br><span class="line">.then(<span class="function"><span class="params">result</span>=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result)</span><br><span class="line">  <span class="keyword">return</span> arr[<span class="number">2</span>]</span><br><span class="line">&#125;)</span><br><span class="line">.then(<span class="function"><span class="params">result</span>=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>执行，我们发现这样输出是并行的。也就是说一秒钟一次性输出了3个值。</p>
+<p>原因分析：</p>
+<blockquote>
+<p>把 <code>setDelay(1000)</code> 这个直接添加到数组的时候，其实就已经执行了，注意你的执行语句 <code>(1000)</code></p>
+</blockquote>
+<p>所以我们可以将 <code>Promise</code> 预先存储在一个数组中，在调用的时候，再去执行。当然你也可以用闭包的方式存储起来，需要调用的时候再执行。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">arr = [setDelay, setDelay, setDelay]</span><br><span class="line">arr[<span class="number">0</span>](<span class="number">1000</span>)</span><br><span class="line">.then(<span class="function"><span class="params">result</span>=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result)</span><br><span class="line">  <span class="keyword">return</span> arr[<span class="number">1</span>](<span class="number">1000</span>)</span><br><span class="line">&#125;)</span><br><span class="line">.then(<span class="function"><span class="params">result</span>=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result)</span><br><span class="line">  <span class="keyword">return</span> arr[<span class="number">2</span>](<span class="number">1000</span>)</span><br><span class="line">&#125;)</span><br><span class="line">.then(<span class="function"><span class="params">result</span>=&gt;</span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<h4 id="优化后的Promise循环"><a href="#优化后的Promise循环" class="headerlink" title="优化后的Promise循环"></a>优化后的Promise循环</h4><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">arr = [setDelay, setDelay, setDelay]</span><br><span class="line"><span class="keyword">var</span> temp</span><br><span class="line">temp = arr[<span class="number">0</span>](<span class="number">1000</span>)</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">1</span>; i &lt;= arr.length; i++) &#123;</span><br><span class="line">    <span class="keyword">if</span> (i == arr.length) &#123;</span><br><span class="line">      temp.then(<span class="function"><span class="params">result</span>=&gt;</span>&#123;</span><br><span class="line">        <span class="built_in">console</span>.log(<span class="string">'完成了'</span>);</span><br><span class="line">      &#125;)</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    temp = temp.then(<span class="function">(<span class="params">result</span>)=&gt;</span>&#123;</span><br><span class="line">        <span class="built_in">console</span>.log(result);</span><br><span class="line">        <span class="keyword">return</span> arr[i<span class="number">-1</span>](<span class="number">1000</span>)</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="直接使用async-await"><a href="#直接使用async-await" class="headerlink" title="直接使用async/await"></a>直接使用async/await</h4><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">(<span class="keyword">async</span> ()=&gt;&#123;</span><br><span class="line">    arr = [timeout(<span class="number">2000</span>), timeout(<span class="number">1000</span>), timeout(<span class="number">1000</span>)]</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">var</span> i=<span class="number">0</span>; i &lt; arr.length; i++) &#123;</span><br><span class="line">		result = <span class="keyword">await</span> arr[i]();</span><br><span class="line">    	<span class="built_in">console</span>.log(result);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;)()</span><br></pre></td></tr></table></figure>
+
+
+                <hr>
+
+                
+
+                <ul class="pager">
+                    
+                    
+                        <li class="next">
+                            <a href="/2019/05/02/git远程仓库相关/" data-toggle="tooltip" data-placement="top" title="Git远程仓库相关">Next Post &rarr;</a>
+                        </li>
+                    
+                </ul>
+
+                
+
+                
+                <!-- disqus 评论框 start -->
+                <div class="comment">
+                    <div id="disqus_thread" class="disqus-thread"></div>
+                </div>
+                <!-- disqus 评论框 end -->
+                
+
+            </div>
+    <!-- Side Catalog Container -->
+        
+
+    <!-- Sidebar Container -->
+
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <!-- no hr -->
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+                       
+                          <a class="tag" href="/tags/#JavaScript" title="JavaScript">JavaScript</a>
+                        
+                          <a class="tag" href="/tags/#ES6" title="ES6">ES6</a>
+                        
+                    </div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+
+                    
+                </ul>
+                
+            </div>
+
+        </div>
+    </div>
+</article>
+
+
+
+
+<!-- disqus 公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES * * */
+    var disqus_shortname = "hexo-theme-huxblog";
+    var disqus_identifier = "https://yeomanli.github.io/2019/05/03/异步Promise以及AsyncAwait/";
+    var disqus_url = "https://yeomanli.github.io/2019/05/03/异步Promise以及AsyncAwait/";
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<!-- disqus 公共JS代码 end -->
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("https://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                
+                
+                    <li>
+                        <a target="_blank" href="https://twitter.com/YeomanLi">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+                
+
+                
+                    <li>
+                        <a target="_blank" href="http://weibo.com/小明一点也不酷">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+
+                
+                    <li>
+                        <a target="_blank" href="https://github.com/YeomanLi">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Yeoman&#39;s Blog 2019 
+                    <br>
+                    Theme by <a href="http://huangxuan.me">Hux</a> 
+                    <span style="display: inline-block; margin: 0 5px;">
+                        <i class="fa fa-heart"></i>
+                    </span> 
+                    Ported by <a href="http://blog.kaijun.rocks">Kaijun</a> | 
+                    <iframe style="margin-left: 2px; margin-bottom:-5px;" frameborder="0" scrolling="0" width="91px" height="20px" src="https://ghbtns.com/github-btn.html?user=kaijun&repo=hexo-theme-huxblog&type=star&count=true">
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js"></script>
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("https://yeomanli.github.io/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("https://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+<script>
+    // dynamic User by Hux
+    var _gaId = 'UA-49627206-1';
+    var _gaDomain = 'huangxuan.me';
+
+    // Originial
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', _gaId, _gaDomain);
+    ga('send', 'pageview');
+</script>
+
+
+
+
+<!-- Baidu Tongji -->
+
+<script>
+    // dynamic User by Hux
+    var _baId = '4cc1f2d8f3067386cc5cdb626a202900';
+
+    // Originial
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?" + _baId;
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+</script>
+
+
+<!-- Side Catalog -->
+
+
+
+
+
+<!-- Image to hack wechat -->
+<img src="https://yeomanli.github.io/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+
+</html>
